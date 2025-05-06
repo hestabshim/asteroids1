@@ -42,9 +42,9 @@ int main()
 	bool drawbullet(false);
 
 	//PhysicsSprite& asteroid = *new PhysicsSprite();
-	PhysicsShapeList<PhysicsSprite> asteroids;
-	Texture astTex;
-	LoadTex(astTex, "images/asteroid.png");
+	vector<pair<PhysicsSprite, float>> asteroids;
+
+	
 	/*{
 		PhysicsSprite& asteroid = asteroids.Create();
 		asteroid.setTexture(astTex);
@@ -108,26 +108,26 @@ int main()
 
 		if (deltaMS > 9) {
 			if (Keyboard::isKeyPressed(Keyboard::W)) {
-				ship.move(movement * 100.f);
+				ship.move(movement * 150.f);
 				cout << "works " << movement.x << " " << movement.y << endl;
 			}
 			if (Keyboard::isKeyPressed(Keyboard::S)) {
-				ship.move(backmovement*100.f);
+				ship.move(backmovement*150.f);
 			}
 			if (Keyboard::isKeyPressed(Keyboard::A)) {
-				ship.rotate(1.f);
+				ship.rotate(3.f);
 			}
 			if (Keyboard::isKeyPressed(Keyboard::D)) {
-				ship.rotate(-1.f);
+				ship.rotate(-3.f);
 			}
 			if (Keyboard::isKeyPressed(Keyboard::Space) && !drawbullet) {
 				drawbullet = true;
 				world.AddPhysicsBody(bullet);
 				bullet.setCenter(ship.getCenter());
-				bullet.setVelocity(movement*100.f);
+				bullet.setVelocity(movement*50.f);
 				bullet.setMass(0);
 			}
-			if (bulletMS > 2500) {
+			if (bulletMS > 1000) {
 				lastBullet = currentTime;
 				drawbullet = false;
 				world.RemovePhysicsBody(bullet);
@@ -137,12 +137,14 @@ int main()
 
 			world.UpdatePhysics(deltaMS);
 			window.clear();
-			for (PhysicsSprite& asteroid : asteroids) {
-				float astrot = asteroid.getRotation();
-				asteroid.setRotation(astrot + randf(0.1,1));
-				window.draw((PhysicsSprite&)asteroid);
+			for (auto& pair : asteroids) {
+				if (pair.second == 0) continue;
+				/*float astrot = asteroid.getRotation();
+				asteroid.setRotation(astrot + randf(0.1,1));*/
+				window.draw((PhysicsSprite&) pair.first);
 			}
 			window.draw(bullet);
+
 			//window.draw(asteroid);
 			window.draw(ship);
 			/*window.draw(right);
@@ -152,37 +154,49 @@ int main()
 			//window.draw(asteroid);
 			world.VisualizeAllBounds(window);
 			window.display();
-			asteroids.DoRemovals();
+			//asteroids.DoRemovals();
 		}
-
+		
 		//cerr << "WHAT THE FUCJK\n";
 		if (deltaAsteroidMS > 2000) {
 			lastAsteroid = currentTime;
-
-			PhysicsSprite& asteroid = asteroids.Create();
-			asteroid.onCollision = [&]
-			(PhysicsBodyCollisionResult result) {
-
+			 
+			PhysicsSprite& asteroid = *new PhysicsSprite();
+			float size_mult = randf(0.1, 0.5);
+			int myIdx = asteroids.size();
+			asteroids.push_back({ asteroid, size_mult });
+			asteroid.onCollision = [&](PhysicsBodyCollisionResult result) {
 				if (result.object2 == bullet) {
 					world.RemovePhysicsBody(asteroid);
 					world.RemovePhysicsBody(bullet);
-					asteroids.QueueRemove(asteroid);
+					//asteroids.erase(asteroids.begin() + myIdx);
+					asteroids[myIdx].second = 0;
 					cerr << "collide\n";
-				}
-
-				};
-			
+				} 
+			};
+			Texture astTex;
+			LoadTex(astTex, "images/asteroid.png");
 			//randomized spwaning
 			asteroid.setTexture(astTex);
 			Vector2f sz = asteroid.getSize();
-			asteroid.setCenter(Vector2f(randf(0,windowSize.x),randf(0,windowSize.y)));
-			asteroid.setOrigin(Vector2f(sz * (float) 0.5));
-			asteroid.setVelocity(Vector2f(randf(-0.25, 0.25), randf(-0.25,0.25)));
-			asteroid.setSize(Vector2f(sz * randf(0.1,0.5)));
-			asteroid.setRotation(randf(0, 360));
+			//float size_mult = 0.125/2.0;
+			float magic = 1.0 / (2 * size_mult) - 0.5;
+
+			FloatRect size = asteroid.getGlobalBounds();
+			//((PhysicsBody&)asteroid).setPosition(Vector2f(randf(0, windowSize.x), randf(0, windowSize.y)));
+			asteroid.setCenter(Vector2f(randf(0,windowSize.x),randf(0,windowSize.y)));	
+
+			asteroid.setOrigin(-size.width * magic,-size.height * magic);
+			//asteroid.setOrigin(0, 0);
+			//asteroid.setOrigin(0, 0);
+ 			asteroid.setVelocity(Vector2f(randf(-0.25, 0.25), randf(-0.25,0.25)) * (0.1f / size_mult));
+			//asteroid.setScale(Vector2f(size_mult, size_mult));
+			asteroid.setSize(Vector2f(sz * size_mult));
+			//asteroid.setRotation(randf(0, 360));
 			
 			world.AddPhysicsBody(asteroid);
 			asteroid.setMass(0);
+			cout << size.height << " " << size.width << endl;
 
 		}
 
